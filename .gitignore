@@ -1,0 +1,5 @@
+/RVMDK/Output
+/RVMDK/*.bak
+/RVMDK/*.dep
+/RVMDK/*.uvopt
+/RVMDK/*.uvgui.*
