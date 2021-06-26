@@ -90,12 +90,16 @@ static void RCC_Configuration(void){
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
 }
 
-gpio_t led1={GPIOB,GPIO_Pin_5, DIR_OUTPUT, LOGIC_NORMAL, DEFAULT_RESET};
+gpio_t led1={GPIOA,GPIO_Pin_1, DIR_OUTPUT, LOGIC_NORMAL, DEFAULT_RESET};
+gpio_t RS485_RE={GPIOA,GPIO_Pin_4, DIR_OUTPUT, LOGIC_NORMAL, DEFAULT_RESET};
+gpio_t RS485_DE={GPIOA,GPIO_Pin_5, DIR_OUTPUT, LOGIC_NORMAL, DEFAULT_RESET};
 
 static void GPIO_Configuration(void){
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
     gpio_init(&led1);
+    gpio_init(&RS485_RE);
+    gpio_init(&RS485_DE);
 }
 
 void  BSP_Init (void){
@@ -112,14 +116,27 @@ void  BSP_DeInit (void){
 
 int putc(int c) {
     while (!(USART->SR & USART_SR_TXE)){__ASM("nop");}
+    gpio_set(&RS485_RE,true);
+    gpio_set(&RS485_DE,true);
+    volatile uint16_t sr = USART->SR;  //read SR then write DR to clear SR_TC flag
     USART->DR = c;
+    while (!(USART->SR & USART_SR_TC)){__ASM("nop");}
+    gpio_set(&RS485_RE,false);
+    gpio_set(&RS485_DE,false);
 	return 1;
 }
 
 int puts(char *s,unsigned int len){
+    gpio_set(&RS485_RE,true);
+    gpio_set(&RS485_DE,true);
+    volatile uint16_t sr = USART->SR;  //read SR then write DR to clear SR_TC flag
     for(unsigned int i=0;i<len;i++){
-        putc(s[i]);
+        while (!(USART->SR & USART_SR_TXE)){__ASM("nop");}
+        USART->DR = s[i];
     }
+    while (!(USART->SR & USART_SR_TC)){__ASM("nop");}
+    gpio_set(&RS485_RE,false);
+    gpio_set(&RS485_DE,false);
     return len;
 }
 

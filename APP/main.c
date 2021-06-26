@@ -12,10 +12,25 @@ typedef  void (*pFunction)(void);
 #define APP_START_ADDRESS (0x08000000 + START_SECTOR*SECTOR_SIZE)
 #define APP_END_ADDRESS (0x08000000 + END_SECTOR*SECTOR_SIZE)
 
-int main(void)
+#define JTAG_SWD_DISABLE   0X02
+#define SWD_ENABLE         0X01
+#define JTAG_SWD_ENABLE    0X00	
+
+void JTAG_Set(u8 mode)
 {
+	u32 temp;
+	temp=mode;
+	temp<<=25;
+	RCC->APB2ENR|=1<<0;
+	AFIO->MAPR&=0XF8FFFFFF;
+	AFIO->MAPR|=temp;
+}
+
+
+int main(void){
+    JTAG_Set(SWD_ENABLE);
     //SystemCoreClockUpdate();
-    //DBGMCU_APB1PeriphConfig(DBGMCU_IWDG_STOP,ENABLE);
+    DBGMCU_Config(DBGMCU_IWDG_STOP,ENABLE);
     __IO uint32_t* appVectorTable = (__IO uint32_t*)APP_START_ADDRESS;
     uint32_t appEntry;
     uint32_t spAddress;
