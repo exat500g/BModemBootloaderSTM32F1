@@ -66,7 +66,7 @@ static void USART_Configuration(void){
 
 	GPIO_InitStructure.GPIO_Pin = UART_GPIO_TX;
 	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF_PP;
-    GPIO_InitStructure.GPIO_Speed  = GPIO_Speed_10MHz;
+    GPIO_InitStructure.GPIO_Speed  = GPIO_Speed_50MHz;
 	GPIO_Init(UART_GPIO, &GPIO_InitStructure);
 
 	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IN_FLOATING;
@@ -101,11 +101,24 @@ static void GPIO_Configuration(void){
     gpio_init(&RS485_RE);
     gpio_init(&RS485_DE);
 }
-
+int rc=-1;
+int tc=12;
+int test=0;
+int rxCount=0;
 void  BSP_Init (void){
 	RCC_Configuration();
 	GPIO_Configuration();
     USART_Configuration();
+    /*while(1){
+        rc=getc();
+        if(rc>=0){
+            rxCount++;
+        }
+        if(test==1){
+            test=0;
+            putc(tc);
+        }
+    }*/
 }
 void  BSP_DeInit (void){
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, DISABLE);
@@ -118,17 +131,20 @@ int putc(int c) {
     while (!(USART->SR & USART_SR_TXE)){__ASM("nop");}
     gpio_set(&RS485_RE,true);
     gpio_set(&RS485_DE,true);
+    USART->CR1 &= ~USART_CR1_RE;
     volatile uint16_t sr = USART->SR;  //read SR then write DR to clear SR_TC flag
     USART->DR = c;
     while (!(USART->SR & USART_SR_TC)){__ASM("nop");}
     gpio_set(&RS485_RE,false);
     gpio_set(&RS485_DE,false);
+    USART->CR1 |= USART_CR1_RE;
 	return 1;
 }
 
 int puts(char *s,unsigned int len){
     gpio_set(&RS485_RE,true);
     gpio_set(&RS485_DE,true);
+    USART->CR1 &= ~USART_CR1_RE;
     volatile uint16_t sr = USART->SR;  //read SR then write DR to clear SR_TC flag
     for(unsigned int i=0;i<len;i++){
         while (!(USART->SR & USART_SR_TXE)){__ASM("nop");}
@@ -137,6 +153,7 @@ int puts(char *s,unsigned int len){
     while (!(USART->SR & USART_SR_TC)){__ASM("nop");}
     gpio_set(&RS485_RE,false);
     gpio_set(&RS485_DE,false);
+    USART->CR1 |= USART_CR1_RE;
     return len;
 }
 
